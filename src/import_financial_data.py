@@ -1,66 +1,130 @@
 import pandas as pd
 import sqlite3
 
-xls = pd.ExcelFile('stragegies.xlsx')
+conn = sqlite3.connect('financial.db')
 
-sheet_name = "Cópia de ABEV3 1"
+cursor = conn.cursor()
 
-df = xls.parse(sheet_name=sheet_name)
+xls = pd.ExcelFile('financial_data.xlsx')
 
-nome = df.columns[0]
+for sheet_name in xls.sheet_names:
 
-print(nome)
+    print(sheet_name)
 
-for (column, data) in df.iteritems():
-    if column == nome:
+    df = xls.parse(sheet_name=sheet_name)
+
+    if len(df) != 439:
         continue
-    print(column)
-    print(data)
-    break
 
-# nome = df.columns[0]
+    nome = df.columns[0]
+    for (column, data) in df.items():
+        if column == nome:
+            continue
+        column_index = df.columns.get_loc(column)
 
-# metodo_contabil = df.iat[4,6]
+        ano = df.iat[2, column_index].year
+        ticker = sheet_name
 
-# divida_bruta = df.iat[89,6] + df.iat[122,6]
+        metodo_contabil = df.iat[4, column_index]
 
-# ano = df.iat[2,6].year
+        ebit = None
+        if df.iat[202, column_index] != '-':
+            ebit = df.iat[202, column_index]
 
-# caixa = df.iat[10,1] + df.iat[11,1]
+        pl = None
+        if df.iat[161, column_index] != '-':
+            pl = df.iat[161, column_index]
 
-# divida_liquida = None
-# if '-' in str(caixa):
-#     divida_liquida = None
-# else:
-#     divida_liquida = divida_bruta - caixa
+        lucro_liquido = None
+        if df.iat[214, column_index] != '-':
+            lucro_liquido = df.iat[214, column_index]
 
-# print(caixa)
-# print(ano)
-# print(df.columns[0])
-# print(metodo_contabil)
-# print(df.iat[89,6])
-# print(df.iat[122,6])
-# print(divida_bruta)
+        receita_liquida = None
+        if df.iat[192, column_index] != '-':
+            receita_liquida = df.iat[192, column_index]
 
-# conn = sqlite3.connect('financial.db')
+        quantidade_de_acoes = df.iat[427, column_index]
 
-# cursor = conn.cursor()
+        divida_bruta = None
+        if df.iat[89, column_index] != '-' and df.iat[122, column_index] != '-':
+            divida_bruta = df.iat[89, column_index] + df.iat[122, column_index]
 
-# values = (sheet_name, nome, ano, metodo_contabil, divida_bruta)
+        caixa = None
+        if df.iat[10, column_index] != '-' and df.iat[11, column_index] != '-':
+            caixa = df.iat[10, column_index] + df.iat[11, column_index]
 
-# statement = f'insert into financial values ("{sheet_name}", "{ano}", "{nome}", "{metodo_contabil}", "{divida_bruta}")'
+        divida_liquida = None
+        if caixa != None and divida_bruta != None:
+            divida_liquida = divida_bruta - caixa
 
-# print(statement)
+        divida_liquida_ebit = None
+        if divida_liquida != None and ebit != 0:
+            divida_liquida_ebit = divida_liquida / ebit
 
-# cursor.execute("""
-# insert into financial
-# values (?,?,?,?,?)
-# """, values)
+        divida_bruta_pl = None
+        if divida_bruta != None and pl != None:
+            divida_bruta_pl = divida_bruta / pl
 
-# conn.commit()
+        margem_bruta = 0
+        if receita_liquida != 0 and df.iat[194, column_index] != '-':
+            margem_bruta = df.iat[194, column_index] / receita_liquida
 
-# conn.close()
+        despesas_vga_lucro_bruto = None
+        if df.iat[195, column_index] != '-' and df.iat[194, column_index] != 0:
+            despesas_vga_lucro_bruto = df.iat[195, column_index] / df.iat[194, column_index]
 
+        deprec_amort_lucro_bruto = None
+        if df.iat[225, column_index] != '-'  and df.iat[194, column_index] != 0:
+            deprec_amort_lucro_bruto = df.iat[225, column_index] / df.iat[194, column_index]
 
-# print(df.iat[0,0])
+        margem_ebit = 0
+        if receita_liquida != 0 and ebit != None and receita_liquida != None:
+            margem_ebit = ebit / receita_liquida
+
+        despesas_juros_ebit = 0
+        if ebit != 0 and df.iat[203, column_index] != '-' and ebit != None:
+            despesas_juros_ebit = (df.iat[203, column_index] * -1) / ebit
+
+        margem_liquida = 0
+        if receita_liquida != 0 and receita_liquida != None and lucro_liquido != None:
+            margem_liquida = lucro_liquido / receita_liquida
+
+        lpa = None
+        if df.iat[214, column_index] != '-' and df.iat[427, column_index] != '-':
+            lpa = df.iat[214, column_index] / df.iat[427, column_index]
+
+        capex = None
+        if df.iat[242, column_index] != '-':
+            capex = df.iat[242, column_index] * -1
+
+        capex_d_a = None
+        if capex != None and df.iat[225, column_index] != '-' and df.iat[225, column_index] != 0:
+            capex_d_a = capex / df.iat[225, column_index]
+
+        capex_fco = None
+        if capex != None and df.iat[222, column_index] != '-' and df.iat[222, column_index] != 0:
+            capex_fco = capex / df.iat[222, column_index]
+
+        reserva_lucros = None
+        if df.iat[172, column_index] != '-':
+            reserva_lucros = df.iat[172, column_index]
+
+        values = (ticker, nome, ano, metodo_contabil, divida_bruta, divida_liquida, divida_liquida_ebit,
+            divida_bruta_pl, receita_liquida, ebit, pl, lucro_liquido,
+            margem_bruta, despesas_vga_lucro_bruto, deprec_amort_lucro_bruto,
+            margem_ebit, despesas_juros_ebit, margem_liquida, lpa, capex, capex_d_a,
+            capex_fco, reserva_lucros, quantidade_de_acoes)
+
+        cursor.execute("""
+            INSERT INTO financial (ticker, nome, ano, metodo_contabil, divida_bruta, divida_liquida, divida_liquida_ebit,
+            divida_bruta_pl, receita_liquida, ebit, pl, lucro_liquido,
+            margem_bruta, despesas_vga_lucro_bruto, deprec_amort_lucro_bruto,
+            margem_ebit, despesas_juros_ebit, margem_liquida, lpa, capex, capex_d_a,
+            capex_fco, reserva_lucros, quantidade_acoes)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, values)
+        
+conn.commit()
+
+conn.close()
 
