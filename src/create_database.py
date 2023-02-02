@@ -30,7 +30,10 @@ CREATE TABLE financial (
     capex_d_a DECIMAL,
     capex_fco DECIMAL,
     reserva_lucros DECIMAL,
-    quantidade_acoes DECIMAL
+    quantidade_acoes DECIMAL,
+    setor TEXT,
+    subsetor TEXT,
+    segmento TEXT
 );
 """)
 
