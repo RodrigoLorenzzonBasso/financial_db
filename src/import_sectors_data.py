@@ -1,5 +1,6 @@
 import pandas as pd
 import sqlite3
+import re
 
 conn = sqlite3.connect('financial.db')
 
@@ -12,7 +13,10 @@ for line in df.iterrows():
     setor = line[1].iloc[3]
     subsetor = line[1].iloc[4]
     segmento = line[1].iloc[5]
-    values = (setor, subsetor, segmento, ticker[:-1] + '%')
+    values = (setor,
+        subsetor,
+        segmento,
+        re.search(r"[a-z]*", ticker, re.IGNORECASE).group() + '%')
     cursor.execute("""
         UPDATE financial
         SET setor = ?, subsetor = ?, segmento = ?
